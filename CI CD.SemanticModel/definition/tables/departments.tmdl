@@ -1,0 +1,46 @@
+table departments
+	lineageTag: 7c23e04d-8d61-4ecc-9e8b-df74296f71b9
+
+	measure 'Total dep' = COUNT(departments[dept_no])
+		formatString: 0
+		lineageTag: 3e06cdd7-c1f7-4a57-8dc3-5b70123865ed
+
+	column dept_no
+		dataType: string
+		lineageTag: fb27bb6d-5762-4dc9-9ce7-f4f0a7d2985c
+		summarizeBy: none
+		sourceColumn: dept_no
+
+		annotation SummarizationSetBy = Automatic
+
+	column dept_name
+		dataType: string
+		lineageTag: 0b4ec8f3-21b0-490b-a1e7-b6d2f2ea2485
+		summarizeBy: none
+		sourceColumn: dept_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column Length
+		dataType: int64
+		formatString: 0
+		lineageTag: 2c660974-82f8-4288-9eaf-fb8d063649c7
+		summarizeBy: sum
+		sourceColumn: Length
+
+		annotation SummarizationSetBy = Automatic
+
+	partition departments = m
+		mode: import
+		source =
+				let
+				    Source = MySQL.Database(ServerName, DatabaseName, [ReturnSingleDatabase=true]),
+				    ikram_test_departments = Source{[Schema=DatabaseName,Item="departments"]}[Data],
+				    #"Inserted Text Length" = Table.AddColumn(ikram_test_departments, "Length", each Text.Length([dept_no]), Int64.Type)
+				in
+				    #"Inserted Text Length"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

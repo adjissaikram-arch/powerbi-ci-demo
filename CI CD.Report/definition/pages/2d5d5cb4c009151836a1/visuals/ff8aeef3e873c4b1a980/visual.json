@@ -1,0 +1,120 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.3.0/schema.json",
+  "name": "ff8aeef3e873c4b1a980",
+  "position": {
+    "x": 195.77648387937776,
+    "y": 138.82332493264968,
+    "z": 0,
+    "height": 281.20622229946986,
+    "width": 380.874250456244,
+    "tabOrder": 0
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "departments"
+                    }
+                  },
+                  "Property": "dept_no"
+                }
+              },
+              "queryRef": "departments.dept_no",
+              "nativeQueryRef": "dept_no",
+              "active": true
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "departments"
+                        }
+                      },
+                      "Property": "dept_name"
+                    }
+                  },
+                  "Function": 3
+                }
+              },
+              "queryRef": "Min(departments.dept_name)",
+              "nativeQueryRef": "First dept_name"
+            },
+            {
+              "field": {
+                "Aggregation": {
+                  "Expression": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "departments"
+                        }
+                      },
+                      "Property": "Length"
+                    }
+                  },
+                  "Function": 0
+                }
+              },
+              "queryRef": "Sum(departments.Length)",
+              "nativeQueryRef": "Sum of Length"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "departments"
+                  }
+                },
+                "Property": "dept_no"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'List departements'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -1,0 +1,15 @@
+expression ServerName = "IKRAM-PC" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: d339fd85-ee6a-46d0-a25a-3543f60b6511
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
+/// Nom de la base MySQL selon l’environnement
+expression DatabaseName = "ikram_dev" meta [IsParameterQuery=true, List={"ikram_dev", "ikram_test", "ikram_prod"}, DefaultValue=..., Type="Text", IsParameterQueryRequired=true]
+	lineageTag: c29c1fa7-1ed5-4687-a811-33157a21a867
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Text
+
