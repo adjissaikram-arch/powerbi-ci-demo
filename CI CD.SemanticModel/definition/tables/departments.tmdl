@@ -30,15 +30,25 @@ table departments
 
 		annotation SummarizationSetBy = Automatic
 
+	column Index
+		dataType: int64
+		formatString: 0
+		lineageTag: dc258087-8228-4010-b0a1-8a8ff4b00d4b
+		summarizeBy: sum
+		sourceColumn: Index
+
+		annotation SummarizationSetBy = Automatic
+
 	partition departments = m
 		mode: import
 		source =
 				let
 				    Source = MySQL.Database(ServerName, DatabaseName, [ReturnSingleDatabase=true]),
 				    ikram_test_departments = Source{[Schema=DatabaseName,Item="departments"]}[Data],
-				    #"Inserted Text Length" = Table.AddColumn(ikram_test_departments, "Length", each Text.Length([dept_no]), Int64.Type)
+				    #"Inserted Text Length" = Table.AddColumn(ikram_test_departments, "Length", each Text.Length([dept_no]), Int64.Type),
+				    #"Added Index" = Table.AddIndexColumn(#"Inserted Text Length", "Index", 0, 1, Int64.Type)
 				in
-				    #"Inserted Text Length"
+				    #"Added Index"
 
 	annotation PBI_NavigationStepName = Navigation
 
