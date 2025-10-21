@@ -1,0 +1,44 @@
+name: CI Power BI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-powerbi-project:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Show repository tree (for debug)
+      run: |
+        echo "Contenu du dépôt :"
+        ls -la
+        echo "Recherche des fichiers .pbip et .pbix :"
+        ls -la *.pbip || true
+        ls -la *.pbix || true
+
+    - name: Validate project presence
+      run: |
+        echo "Vérification que le projet Power BI est présent (pbip OU pbix)…"
+        if ls *.pbip 1>/dev/null 2>&1; then
+          echo "✅ Fichier .pbip trouvé."
+        elif ls *.pbix 1>/dev/null 2>&1; then
+          echo "✅ Fichier .pbix trouvé."
+        else
+          echo "❌ Aucun fichier .pbip ou .pbix trouvé à la racine du dépôt."
+          exit 1
+        fi
+
+    - name: Validate pbip structure (dataset/report)
+      run: |
+        if ls *.pbip 1>/dev/null 2>&1; then
+          echo "Vérification de la structure pbip…"
+          test -d "dataset" && test -d "report" && echo "✅ Dossiers dataset/ et report/ présents." || (echo "❌ Structure pbip incomplète (dataset/ ou report/ manquant)." && exit 1)
+        else
+          echo "Projet en .pbix : étape de validation pbip sautée."
+        fi
