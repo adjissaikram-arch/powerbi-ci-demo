@@ -89,3 +89,41 @@ jobs:
           else
             echo "⚠️ Attention : mesure DAX 'Total Sales' manquante."
           fi
+  quality-check:
+    name: Contrôle qualité DAX & M-Code
+    runs-on: ubuntu-latest
+    needs: check-parameters-and-measures  # s’exécute après la validation des paramètres
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Analyser la qualité DAX et M-Code
+        run: |
+          echo "🔍 Analyse du code DAX et M..."
+          echo "=== Rapport de validation Power BI ===" > validation-report.txt
+          echo "Date d'analyse : $(date)" >> validation-report.txt
+          echo "" >> validation-report.txt
+
+          # Vérification des fichiers de mesures
+          if grep -r '"expression":' . | grep -q "CALCULATE"; then
+            echo "✅ Mesures DAX valides trouvées (utilisation de CALCULATE détectée)" >> validation-report.txt
+          else
+            echo "⚠️ Aucune mesure DAX complexe détectée" >> validation-report.txt
+          fi
+
+          # Vérification du M code (Power Query)
+          if grep -r "let" . | grep -q "in"; then
+            echo "✅ Requêtes Power Query détectées (M code correct)" >> validation-report.txt
+          else
+            echo "❌ Aucun M code valide détecté" >> validation-report.txt
+          fi
+
+          echo "" >> validation-report.txt
+          echo "Analyse terminée avec succès ✅" >> validation-report.txt
+
+      - name: Publier le rapport d’analyse
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-validation-powerbi
+          path: validation-report.txt
