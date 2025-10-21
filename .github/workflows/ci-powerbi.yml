@@ -8,48 +8,84 @@ on:
 
 jobs:
   validate-powerbi-project:
+    name: Valider le projet Power BI
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Show repository tree (for debug)
-      run: |
-        echo "Contenu du dépôt :"
-        ls -la
-        echo "Recherche des fichiers .pbip et .pbix :"
-        ls -la *.pbip || true
-        ls -la *.pbix || true
+      - name: Show repository tree (for debug)
+        run: |
+          echo "Contenu du dépôt :"
+          ls -la
+          echo "Recherche des fichiers .pbip et .pbix :"
+          ls -la *.pbip || true
+          ls -la *.pbix || true
 
-    - name: Validate project presence
-      run: |
-        echo "Vérification que le projet Power BI est présent (pbip OU pbix)…"
-        if ls *.pbip 1>/dev/null 2>&1; then
-          echo "✅ Fichier .pbip trouvé."
-        elif ls *.pbix 1>/dev/null 2>&1; then
-          echo "✅ Fichier .pbix trouvé."
-        else
-          echo "❌ Aucun fichier .pbip ou .pbix trouvé à la racine du dépôt."
-          exit 1
-        fi
-
-    - name: Validate pbip structure (dataset/report)
-      run: |
-        if ls *.pbip 1>/dev/null 2>&1; then
-          echo "Vérification de la structure pbip…"
-          if test -d "dataset" || test -d "CI CD.SemanticModel"; then
-            echo "✅ Dossier dataset trouvé."
+      - name: Validate project presence
+        run: |
+          echo "Vérification que le projet Power BI est présent (pbip OU pbix)…"
+          if ls *.pbip 1>/dev/null 2>&1; then
+            echo "✅ Fichier .pbip trouvé."
+          elif ls *.pbix 1>/dev/null 2>&1; then
+            echo "✅ Fichier .pbix trouvé."
           else
-            echo "❌ Aucun dossier dataset ou CI CD.SemanticModel trouvé."
+            echo "❌ Aucun fichier .pbip ou .pbix trouvé à la racine du dépôt."
             exit 1
           fi
-          if test -d "report" || test -d "CI CD.Report"; then
-            echo "✅ Dossier report trouvé."
+
+      - name: Validate pbip structure (dataset/report)
+        run: |
+          if ls *.pbip 1>/dev/null 2>&1; then
+            echo "Vérification de la structure pbip…"
+            if test -d "dataset" || test -d "CI CD.SemanticModel"; then
+              echo "✅ Dossier dataset trouvé."
+            else
+              echo "❌ Aucun dossier dataset ou CI CD.SemanticModel trouvé."
+              exit 1
+            fi
+            if test -d "report" || test -d "CI CD.Report"; then
+              echo "✅ Dossier report trouvé."
+            else
+              echo "❌ Aucun dossier report ou CI CD.Report trouvé."
+              exit 1
+            fi
           else
-            echo "❌ Aucun dossier report ou CI CD.Report trouvé."
+            echo "Projet en .pbix : étape de validation pbip sautée."
+          fi
+
+  check-parameters-and-measures:
+    name: Vérifier paramètres et mesures
+    runs-on: ubuntu-latest
+    needs: validate-powerbi-project   # ce job ne s’exécute que si la validation PBIP réussit
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Vérifier les paramètres de connexion
+        run: |
+          echo "Contrôle des paramètres de connexion Power BI..."
+          if grep -r '"ServerName":' . | grep -q 'IKRAM-PC'; then
+            echo "✅ Paramètre ServerName trouvé et correct."
+          else
+            echo "❌ Paramètre ServerName manquant ou incorrect."
             exit 1
           fi
-        else
-          echo "Projet en .pbix : étape de validation pbip sautée."
-        fi
+
+          if grep -r '"DatabaseName":' . | grep -q 'ikram_dev'; then
+            echo "✅ Paramètre DatabaseName trouvé et correct."
+          else
+            echo "❌ Paramètre DatabaseName manquant ou incorrect."
+            exit 1
+          fi
+
+      - name: Vérifier la présence de mesures DAX critiques
+        run: |
+          echo "Vérification des mesures DAX critiques..."
+          if grep -r '"name": "Total Sales"' .; then
+            echo "✅ Mesure DAX 'Total Sales' présente."
+          else
+            echo "⚠️ Attention : mesure DAX 'Total Sales' manquante."
+          fi
