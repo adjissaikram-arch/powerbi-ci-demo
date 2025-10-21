@@ -38,7 +38,18 @@ jobs:
       run: |
         if ls *.pbip 1>/dev/null 2>&1; then
           echo "Vérification de la structure pbip…"
-          test -d "dataset" && test -d "report" && echo "✅ Dossiers dataset/ et report/ présents." || (echo "❌ Structure pbip incomplète (dataset/ ou report/ manquant)." && exit 1)
+          if test -d "dataset" || test -d "CI CD.SemanticModel"; then
+            echo "✅ Dossier dataset trouvé."
+          else
+            echo "❌ Aucun dossier dataset ou CI CD.SemanticModel trouvé."
+            exit 1
+          fi
+          if test -d "report" || test -d "CI CD.Report"; then
+            echo "✅ Dossier report trouvé."
+          else
+            echo "❌ Aucun dossier report ou CI CD.Report trouvé."
+            exit 1
+          fi
         else
           echo "Projet en .pbix : étape de validation pbip sautée."
         fi
