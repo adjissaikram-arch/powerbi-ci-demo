@@ -2,43 +2,55 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]   # Déclenchement quand tu publies une release/tag (ex : v1.0.0)
+    types: [published]  # Se déclenche quand une release/tag (ex: v1.0.0) est publiée
 
 jobs:
   deploy-to-powerbi:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    name: Déployer sur Power BI Service
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Afficher le contenu pour debug
-        run: ls -la
+    - name: Installer les modules Power BI
+      shell: pwsh
+      run: |
+        Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
+        Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
+        Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-      - name: Installer Power BI CLI (pbicli)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip
-          pip install powerbicli
+    - name: Authentifier via Azure AD et Power BI Service Principal
+      shell: pwsh
+      run: |
+        $clientId = "${{ secrets.PBI_CLIENT_ID }}"
+        $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
+        $tenantId = "${{ secrets.PBI_TENANT_ID }}"
 
-      - name: Authentifier à Power BI Service
-        env:
-          PBI_TENANT_ID: ${{ secrets.PBI_TENANT_ID }}
-          PBI_CLIENT_ID: ${{ secrets.PBI_CLIENT_ID }}
-          PBI_CLIENT_SECRET: ${{ secrets.PBI_CLIENT_SECRET }}
-        run: |
-          echo "Connexion à Power BI Service..."
-          pbicli login \
-            --service-principal \
-            --tenant $PBI_TENANT_ID \
-            --client-id $PBI_CLIENT_ID \
-            --client-secret $PBI_CLIENT_SECRET
+        Write-Host "🔐 Récupération du token Azure AD..."
+        $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $clientId
+            client_secret = $clientSecret
+            scope         = "https://analysis.windows.net/powerbi/api/.default"
+        }
 
-      - name: Déployer le rapport Power BI
-        run: |
-          echo "Publication du rapport sur Power BI Service..."
-          pbicli import report \
-            --workspace "Ikram workspace Dev" \
-            --name "CI_CD_PowerBI_Report" \
-            --path "CI CD.pbix" \
-            --overwrite
+        $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+        $token = $response.access_token
+
+        Write-Host "✅ Authentification réussie, connexion à Power BI Service..."
+        Connect-PowerBIServiceAccount -AccessToken $token
+
+    - name: Déployer le rapport Power BI
+      shell: pwsh
+      run: |
+        $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
+        $reportPath = "CI CD.pbix"
+
+        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
+        Import-Module MicrosoftPowerBIMgmt.Reports -ErrorAction Stop
+        Import-Module MicrosoftPowerBIMgmt.Workspaces -ErrorAction Stop
+
+        Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
+
+        Write-Host "✅ Déploiement terminé avec succès !"
