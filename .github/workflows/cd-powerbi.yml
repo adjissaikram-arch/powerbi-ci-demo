@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Se déclenche quand une release/tag (ex: v1.0.0) est publiée
+    types: [published]  # Déclenché quand tu publies une nouvelle release (ex: v2.1.0)
 
 jobs:
   deploy-to-powerbi:
@@ -13,44 +13,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Installer les modules Power BI
-      shell: pwsh
+    - name: Installer les modules Power BI (PowerShell)
       run: |
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-    - name: Authentifier via Azure AD et Power BI Service Principal
-      shell: pwsh
+    - name: Authentifier sur Power BI Service (Service Principal)
       run: |
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
 
-        Write-Host "🔐 Récupération du token Azure AD..."
-        $body = @{
-            grant_type    = "client_credentials"
-            client_id     = $clientId
-            client_secret = $clientSecret
-            scope         = "https://analysis.windows.net/powerbi/api/.default"
-        }
-
-        $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
-        $token = $response.access_token
-
-        Write-Host "✅ Authentification réussie, connexion à Power BI Service..."
-        Connect-PowerBIServiceAccount -AccessToken $token
+        Write-Host "Connexion au Power BI Service..."
+        $SecureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
+        $Credential = New-Object System.Management.Automation.PSCredential($clientId, $SecureSecret)
+        Connect-PowerBIServiceAccount -ServicePrincipal -Credential $Credential -Tenant $tenantId
+        Write-Host "✅ Connexion réussie à Power BI Service !"
 
     - name: Déployer le rapport Power BI
-      shell: pwsh
       run: |
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
         $reportPath = "CI CD.pbix"
-
-        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-        Import-Module MicrosoftPowerBIMgmt.Reports -ErrorAction Stop
-        Import-Module MicrosoftPowerBIMgmt.Workspaces -ErrorAction Stop
-
+        Write-Host "Déploiement du rapport $reportPath vers Power BI Service..."
         Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
-
         Write-Host "✅ Déploiement terminé avec succès !"
