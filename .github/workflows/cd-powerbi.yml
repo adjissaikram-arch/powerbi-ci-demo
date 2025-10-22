@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Se déclenche automatiquement à chaque nouvelle release (ex: v1.0.0)
+    types: [published]  # Se déclenche quand une release/tag (ex: v1.0.0) est publiée
 
 jobs:
   deploy-to-powerbi:
@@ -13,26 +13,33 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Installer les modules Power BI (PowerShell)
+    - name: Installer les modules Power BI
       shell: pwsh
       run: |
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-    - name: Authentifier sur Power BI Service (Service Principal)
+    - name: Authentifier via Azure AD et Power BI Service Principal
       shell: pwsh
       run: |
-        $appId = "${{ secrets.PBI_CLIENT_ID }}"
+        $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
 
-        Write-Host "Connexion à Power BI Service avec Service Principal..."
-        $secureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
-        $credential = New-Object System.Management.Automation.PSCredential($appId, $secureSecret)
+        Write-Host "🔐 Récupération du token Azure AD..."
+        $body = @{
+            grant_type    = "client_credentials"
+            client_id     = $clientId
+            client_secret = $clientSecret
+            scope         = "https://analysis.windows.net/powerbi/api/.default"
+        }
 
-        Connect-PowerBIServiceAccount -ServicePrincipal -Tenant $tenantId -ApplicationId $appId -Credential $credential
-        Write-Host "✅ Authentification réussie !"
+        $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
+        $token = $response.access_token
+
+        Write-Host "✅ Authentification réussie, connexion à Power BI Service..."
+        Connect-PowerBIServiceAccount -AccessToken $token
 
     - name: Déployer le rapport Power BI
       shell: pwsh
