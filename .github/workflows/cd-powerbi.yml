@@ -16,30 +16,36 @@ jobs:
     - name: Installer et exécuter le déploiement Power BI
       shell: pwsh
       run: |
-        # --- Installation des modules ---
+        Write-Host "--- Installation des modules ---"
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-        # --- Import des modules ---
+        # --- Import explicite des modules (important sous GitHub Actions) ---
         Import-Module MicrosoftPowerBIMgmt
         Import-Module MicrosoftPowerBIMgmt.Reports
         Import-Module MicrosoftPowerBIMgmt.Workspaces
 
-        # --- Authentification ---
+        # --- Variables d'environnement ---
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
         $reportPath = "CI CD.pbix"
 
+        # --- Authentification ---
         Write-Host "🔐 Connexion à Power BI Service..."
         $SecureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
         $Credential = New-Object System.Management.Automation.PSCredential($clientId, $SecureSecret)
         Connect-PowerBIServiceAccount -ServicePrincipal -Credential $Credential -Tenant $tenantId
         Write-Host "✅ Authentification réussie !"
 
-        # --- Déploiement ---
-        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-        Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
-        Write-Host "✅ Déploiement terminé avec succès !"
+        # --- Vérification que le fichier PBIX existe ---
+        if (Test-Path $reportPath) {
+          Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
+          Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
+          Write-Host "✅ Déploiement terminé avec succès !"
+        }
+        else {
+          Write-Error "❌ Le fichier $reportPath est introuvable dans le répertoire du dépôt."
+        }
