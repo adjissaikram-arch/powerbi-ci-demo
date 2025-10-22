@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Se déclenche automatiquement quand tu publies une nouvelle release (ex: v1.0.0)
+    types: [published]  # Se déclenche automatiquement à chaque nouvelle release (ex: v1.0.0)
 
 jobs:
   deploy-to-powerbi:
@@ -26,20 +26,23 @@ jobs:
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
-
-        $SecureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
-        $Credential = New-Object System.Management.Automation.PSCredential ($clientId, $SecureSecret)
-
-        Write-Host "Connexion à Power BI Service avec le Service Principal..."
-        Connect-PowerBIServiceAccount -ServicePrincipal -Credential $Credential -Tenant $tenantId
+        Write-Host "Connexion à Power BI Service avec Service Principal..."
+        Connect-PowerBIServiceAccount -ServicePrincipal -Tenant $tenantId -ClientId $clientId -Credential (New-Object System.Management.Automation.PSCredential($clientId, (ConvertTo-SecureString $clientSecret -AsPlainText -Force)))
+        Write-Host "✅ Authentification réussie !"
 
     - name: Déployer le rapport Power BI
       shell: pwsh
       run: |
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
-        $reportPath = "CI CD.pbix"
+        $reportPath = "CI CD.pbix"   # Mets ici le chemin exact de ton rapport Power BI
 
-        Write-Host "Déploiement du rapport $reportPath vers Power BI Service..."
+        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
+
+        # Charger les modules Power BI
+        Import-Module MicrosoftPowerBIMgmt.Reports -ErrorAction Stop
+        Import-Module MicrosoftPowerBIMgmt.Workspaces -ErrorAction Stop
+
+        # Déployer le rapport dans le workspace
         Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
 
         Write-Host "✅ Déploiement terminé avec succès !"
