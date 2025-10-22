@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Se déclenche quand une release/tag (ex: v1.0.0) est publiée
+    types: [published]
 
 jobs:
   deploy-to-powerbi:
@@ -20,12 +20,14 @@ jobs:
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-    - name: Authentifier via Azure AD et Power BI Service Principal
+    - name: Authentifier et déployer vers Power BI Service (via API REST)
       shell: pwsh
       run: |
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
+        $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
+        $reportPath = "CI CD.pbix"
 
         Write-Host "🔐 Récupération du token Azure AD..."
         $body = @{
@@ -34,23 +36,21 @@ jobs:
             client_secret = $clientSecret
             scope         = "https://analysis.windows.net/powerbi/api/.default"
         }
-
         $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token" -Body $body
         $token = $response.access_token
-
-        Write-Host "✅ Authentification réussie, connexion à Power BI Service..."
-        Connect-PowerBIServiceAccount -AccessToken $token
-
-    - name: Déployer le rapport Power BI
-      shell: pwsh
-      run: |
-        $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
-        $reportPath = "CI CD.pbix"
+        Write-Host "✅ Token obtenu avec succès !"
 
         Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-        Import-Module MicrosoftPowerBIMgmt.Reports -ErrorAction Stop
-        Import-Module MicrosoftPowerBIMgmt.Workspaces -ErrorAction Stop
+        $headers = @{
+          "Authorization" = "Bearer $token"
+        }
 
-        Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
+        $uri = "https://api.powerbi.com/v1.0/myorg/groups/$workspaceId/imports?datasetDisplayName=CI%20CD&nameConflict=Overwrite"
+        $form = @{
+          "file" = Get-Item $reportPath
+        }
 
-        Write-Host "✅ Déploiement terminé avec succès !"
+        # Envoi du rapport PBIX via API REST
+        Invoke-RestMethod -Uri $uri -Headers $headers -Method Post -InFile $reportPath -ContentType "application/octet-stream"
+
+        Write-Host "✅ Déploiement terminé avec succès sur Power BI Service."
