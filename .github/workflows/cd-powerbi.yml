@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Se déclenche quand tu publies une nouvelle release (ex: v1.0.0)
+    types: [published]  # Se déclenche automatiquement quand tu publies une nouvelle release (ex: v1.0.0)
 
 jobs:
   deploy-to-powerbi:
@@ -14,22 +14,32 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Installer les modules Power BI (PowerShell)
+      shell: pwsh
       run: |
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
     - name: Authentifier sur Power BI Service (Service Principal)
+      shell: pwsh
       run: |
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
-        Connect-PowerBIServiceAccount -ServicePrincipal -TenantId $tenantId -ClientId $clientId -ClientSecret $clientSecret
 
+        $SecureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
+        $Credential = New-Object System.Management.Automation.PSCredential ($clientId, $SecureSecret)
+
+        Write-Host "Connexion à Power BI Service avec le Service Principal..."
+        Connect-PowerBIServiceAccount -ServicePrincipal -Credential $Credential -Tenant $tenantId
 
     - name: Déployer le rapport Power BI
+      shell: pwsh
       run: |
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
         $reportPath = "CI CD.pbix"
+
         Write-Host "Déploiement du rapport $reportPath vers Power BI Service..."
         Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
+
+        Write-Host "✅ Déploiement terminé avec succès !"
