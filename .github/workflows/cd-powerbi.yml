@@ -2,7 +2,7 @@ name: CD Power BI - Déploiement automatique
 
 on:
   release:
-    types: [published]  # Déclenché quand tu publies une nouvelle release (ex: v2.1.0)
+    types: [published]  # Déclenché quand tu publies une nouvelle release (ex: v2.1.1)
 
 jobs:
   deploy-to-powerbi:
@@ -18,6 +18,9 @@ jobs:
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
+        Import-Module MicrosoftPowerBIMgmt
+        Import-Module MicrosoftPowerBIMgmt.Reports
+        Import-Module MicrosoftPowerBIMgmt.Workspaces
 
     - name: Authentifier sur Power BI Service (Service Principal)
       run: |
@@ -33,8 +36,12 @@ jobs:
 
     - name: Déployer le rapport Power BI
       run: |
+        Import-Module MicrosoftPowerBIMgmt.Reports
+        Import-Module MicrosoftPowerBIMgmt.Workspaces
+
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
         $reportPath = "CI CD.pbix"
-        Write-Host "Déploiement du rapport $reportPath vers Power BI Service..."
+
+        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
         Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
         Write-Host "✅ Déploiement terminé avec succès !"
