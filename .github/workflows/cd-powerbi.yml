@@ -16,17 +16,17 @@ jobs:
     - name: Installer et exécuter le déploiement Power BI
       shell: pwsh
       run: |
-        Write-Host "--- Installation des modules ---"
+        Write-Host "--- Installation des modules Power BI ---"
         Install-Module -Name MicrosoftPowerBIMgmt -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Reports -Force -Scope CurrentUser
         Install-Module -Name MicrosoftPowerBIMgmt.Workspaces -Force -Scope CurrentUser
 
-        # --- Import explicite des modules (important sous GitHub Actions) ---
+        Write-Host "--- Importation des modules ---"
         Import-Module MicrosoftPowerBIMgmt
         Import-Module MicrosoftPowerBIMgmt.Reports
         Import-Module MicrosoftPowerBIMgmt.Workspaces
 
-        # --- Variables d'environnement ---
+        # --- Variables ---
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
@@ -40,12 +40,19 @@ jobs:
         Connect-PowerBIServiceAccount -ServicePrincipal -Credential $Credential -Tenant $tenantId
         Write-Host "✅ Authentification réussie !"
 
-        # --- Vérification que le fichier PBIX existe ---
-        if (Test-Path $reportPath) {
-          Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-          Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
-          Write-Host "✅ Déploiement terminé avec succès !"
+        # --- Vérification du fichier PBIX ---
+        if (!(Test-Path $reportPath)) {
+          Write-Error "❌ Le fichier $reportPath est introuvable dans le dépôt."
+          exit 1
         }
-        else {
-          Write-Error "❌ Le fichier $reportPath est introuvable dans le répertoire du dépôt."
+
+        # --- Déploiement du rapport ---
+        Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
+        $report = Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
+
+        if ($report) {
+          Write-Host "✅ Déploiement terminé avec succès !"
+        } else {
+          Write-Error "❌ Échec du déploiement du rapport."
+          exit 1
         }
