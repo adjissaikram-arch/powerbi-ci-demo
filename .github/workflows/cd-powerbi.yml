@@ -24,7 +24,8 @@ jobs:
         $clientId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
-        Connect-PowerBIServiceAccount -ServicePrincipal -Tenant $tenantId -ClientId $clientId -ClientSecret $clientSecret
+        Connect-PowerBIServiceAccount -ServicePrincipal -TenantId $tenantId -ClientId $clientId -ClientSecret $clientSecret
+
 
     - name: Déployer le rapport Power BI
       run: |
