@@ -46,13 +46,21 @@ jobs:
           exit 1
         }
 
+        # --- Liste des modules disponibles ---
+        Write-Host "📦 Modules Power BI chargés :"
+        Get-Module MicrosoftPowerBIMgmt* -ListAvailable
+
+        # --- Vérification de la commande Import-PowerBIReport ---
+        Write-Host "🔍 Vérification de la disponibilité de la commande Import-PowerBIReport..."
+        Get-Command Import-PowerBIReport -ErrorAction SilentlyContinue
+
         # --- Déploiement du rapport ---
         Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-        $report = Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
-
-        if ($report) {
+        try {
+          $report = Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
           Write-Host "✅ Déploiement terminé avec succès !"
-        } else {
-          Write-Error "❌ Échec du déploiement du rapport."
+        }
+        catch {
+          Write-Error "❌ Échec du déploiement du rapport : $($_.Exception.Message)"
           exit 1
         }
