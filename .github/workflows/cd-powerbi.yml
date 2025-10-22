@@ -23,26 +23,27 @@ jobs:
     - name: Authentifier sur Power BI Service (Service Principal)
       shell: pwsh
       run: |
-        $clientId = "${{ secrets.PBI_CLIENT_ID }}"
+        $appId = "${{ secrets.PBI_CLIENT_ID }}"
         $clientSecret = "${{ secrets.PBI_CLIENT_SECRET }}"
         $tenantId = "${{ secrets.PBI_TENANT_ID }}"
+
         Write-Host "Connexion à Power BI Service avec Service Principal..."
-        Connect-PowerBIServiceAccount -ServicePrincipal -Tenant $tenantId -ClientId $clientId -Credential (New-Object System.Management.Automation.PSCredential($clientId, (ConvertTo-SecureString $clientSecret -AsPlainText -Force)))
+        $secureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
+        $credential = New-Object System.Management.Automation.PSCredential($appId, $secureSecret)
+
+        Connect-PowerBIServiceAccount -ServicePrincipal -Tenant $tenantId -ApplicationId $appId -Credential $credential
         Write-Host "✅ Authentification réussie !"
 
     - name: Déployer le rapport Power BI
       shell: pwsh
       run: |
         $workspaceId = "${{ secrets.PBI_WORKSPACE_ID }}"
-        $reportPath = "CI CD.pbix"   # Mets ici le chemin exact de ton rapport Power BI
+        $reportPath = "CI CD.pbix"
 
         Write-Host "🚀 Déploiement du rapport $reportPath vers Power BI Service..."
-
-        # Charger les modules Power BI
         Import-Module MicrosoftPowerBIMgmt.Reports -ErrorAction Stop
         Import-Module MicrosoftPowerBIMgmt.Workspaces -ErrorAction Stop
 
-        # Déployer le rapport dans le workspace
         Import-PowerBIReport -Path $reportPath -WorkspaceId $workspaceId -Name "CI CD" -ConflictAction Overwrite
 
         Write-Host "✅ Déploiement terminé avec succès !"
