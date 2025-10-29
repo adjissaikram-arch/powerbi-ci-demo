@@ -1,5 +1,5 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.3.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.3.0/schema.json",
   "name": "c85776ceeb6a988c7497",
   "position": {
     "x": 149.64925954793452,
@@ -44,14 +44,14 @@
                           "Entity": "departments"
                         }
                       },
-                      "Property": "Index"
+                      "Property": "dept_no"
                     }
                   },
-                  "Function": 0
+                  "Function": 5
                 }
               },
-              "queryRef": "Sum(departments.Index)",
-              "nativeQueryRef": "Sum of Index"
+              "queryRef": "CountNonNull(departments.dept_no)",
+              "nativeQueryRef": "Count of dept_no"
             }
           ]
         }
@@ -68,10 +68,10 @@
                         "Entity": "departments"
                       }
                     },
-                    "Property": "Index"
+                    "Property": "dept_no"
                   }
                 },
-                "Function": 0
+                "Function": 5
               }
             },
             "direction": "Descending"
