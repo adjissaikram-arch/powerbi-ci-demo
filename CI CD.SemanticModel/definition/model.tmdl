@@ -10,8 +10,6 @@ annotation __PBI_TimeIntelligenceEnabled = 1
 
 annotation PBI_QueryOrder = ["ServerName","DatabaseName","departments"]
 
-annotation PBIDesktopVersion = 2.137.952.0 (24.10)
-
 annotation PBI_ProTooling = ["DevMode"]
 
 ref table departments
